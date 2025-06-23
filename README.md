@@ -23,9 +23,9 @@ Ce projet est une application web full-stack pour la gestion de clients et de ve
 
 ### 1. Cloner et Configurer le Backend
 
-```powershell
+```Terminal
 git clone <repository_url>
-cd littlebill_test
+cd TestTech-VersionPython
 
 # Créer un environnement virtuel Python
 python -m venv venv
@@ -38,7 +38,7 @@ pip install -r requirements.txt
 
 ### 2. Configurer le Frontend React
 
-```powershell
+```Terminal
 # Accéder au répertoire du frontend React
 cd frontend-react
 
@@ -52,7 +52,7 @@ Vous devez exécuter à la fois les serveurs backend et frontend :
 
 ### Backend (FastAPI) - Terminal 1
 
-```powershell
+```Terminal
 # Depuis la racine du projet, avec l'environnement virtuel activé
 uvicorn app.main:app --reload
 ```
@@ -64,7 +64,7 @@ L'API sera disponible à :
 
 ### Frontend (React) - Terminal 2
 
-```powershell
+```Terminal
 # Depuis le répertoire frontend-react
 cd frontend-react
 npm start
@@ -89,7 +89,7 @@ Pour créer des utilisateurs supplémentaires :
 
 1. **Générez un hachage de mot de passe** :
 
-   ```powershell
+   ```Terminal
    python generate_hash.py "votre_mot_de_passe_ici"
    ```
 
@@ -113,7 +113,7 @@ Pour créer des utilisateurs supplémentaires :
 
 Exécutez la suite de tests Python :
 
-```powershell
+```Terminal
 # Depuis la racine du projet avec l'environnement virtuel activé
 pytest -v
 ```
@@ -122,7 +122,7 @@ pytest -v
 
 Exécutez les tests React :
 
-```powershell
+```Terminal
 # Depuis le répertoire frontend-react
 npm test
 ```
@@ -227,7 +227,7 @@ Pour le déploiement en production :
 
 1. **Construire le frontend React** :
 
-   ```powershell
+   ```Terminal
    cd frontend-react
    npm run build
    ```
@@ -244,3 +244,4 @@ Pour le déploiement en production :
 - Le backend FastAPI s'exécute sur le port 8000
 - Les tokens JWT sont stockés dans localStorage
 - L'application gère automatiquement l'expiration des tokens et redirige vers la page de connexion
+# TestTech-VPython
