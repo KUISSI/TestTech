@@ -1,22 +1,26 @@
+# Script Pour Windows CMD classique
+
 @echo off
-echo Starting LittleBill Development Environment...
+echo ==============================
+echo  Starting LittleBill Project
+echo ==============================
 echo.
 
-echo [1/2] Starting FastAPI Backend...
-cd /d "%~dp0"
+REM Activer l'environnement virtuel
 call venv\Scripts\activate.bat
+
+echo [1/2] Lancement du backend (FastAPI)...
 start "FastAPI Backend" cmd /k "uvicorn app.main:app --reload"
 
-echo [2/2] Starting React Frontend...
+echo [2/2] Lancement du frontend (React)...
 cd frontend-react
 start "React Frontend" cmd /k "npm start"
+cd ..
 
 echo.
-echo Development servers are starting...
+echo Tout est lancé !
+echo Backend : http://localhost:8000
+echo Frontend : http://localhost:3000
+echo Documentation API : http://localhost:8000/docs
 echo.
-echo Backend (API): http://localhost:8000
-echo Frontend (React): http://localhost:3000
-echo API Docs: http://localhost:8000/docs
-echo.
-echo Press any key to exit...
-pause >nul
+pause

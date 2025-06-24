@@ -1,24 +1,29 @@
-Write-Host "Starting LittleBill Development Environment..." -ForegroundColor Green
+# Script pour PowerShell
+
+Write-Host "===============================" -ForegroundColor Green
+Write-Host "   Starting LittleBill Project" -ForegroundColor Green
+Write-Host "===============================" -ForegroundColor Green
 Write-Host ""
 
-# Get the script directory
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Aller à la racine du script
+$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $root
 
-Write-Host "[1/2] Starting FastAPI Backend..." -ForegroundColor Yellow
-Set-Location $scriptDir
-& .\venv\Scripts\Activate.ps1
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "uvicorn app.main:app --reload" -WindowStyle Normal
+# Activer l'environnement virtuel
+& "$root\venv\Scripts\Activate.ps1"
 
-Write-Host "[2/2] Starting React Frontend..." -ForegroundColor Yellow
-Set-Location "$scriptDir\frontend-react"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "npm start" -WindowStyle Normal
+Write-Host "[1/2] Lancement du backend (FastAPI)..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "uvicorn app.main:app --reload"
+
+Write-Host "[2/2] Lancement du frontend (React)..." -ForegroundColor Yellow
+Start-Process powershell -WorkingDirectory "$root\frontend-react" -ArgumentList "-NoExit", "-Command", "npm start"
 
 Write-Host ""
-Write-Host "Development servers are starting..." -ForegroundColor Green
+Write-Host "✅ Tout est lancé !" -ForegroundColor Green
+Write-Host "Backend : http://localhost:8000" -ForegroundColor Cyan
+Write-Host "Frontend : http://localhost:3000" -ForegroundColor Cyan
+Write-Host "API Docs : http://localhost:8000/docs" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Backend (API): http://localhost:8000" -ForegroundColor Cyan
-Write-Host "Frontend (React): http://localhost:3000" -ForegroundColor Cyan
-Write-Host "API Docs: http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Press any key to exit..."
+Write-Host "Appuie sur une touche pour quitter cette fenêtre..." -ForegroundColor Gray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+

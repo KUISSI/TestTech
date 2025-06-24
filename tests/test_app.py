@@ -176,3 +176,11 @@ def test_sync_customers(auth_token):
         data = response.json()
         assert len(data) == 1
         assert data[0]["last_name"] == "Synced"
+
+def test_access_protected_without_token():
+    response = client.get("/users/me")
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Not authenticated"}
+
+# Garde tes autres tests, c’est très bien.
+

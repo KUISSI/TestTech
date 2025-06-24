@@ -1,17 +1,16 @@
 from passlib.context import CryptContext
+import sys
 import getpass
 
-def generate_hash():
-    """Generates a bcrypt hash for a given password."""
-    try:
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        password = getpass.getpass("Enter password to hash (e.g., testpass): ")
-        hashed_password = pwd_context.hash(password)
-        print("\nGenerated Hash:")
-        print(hashed_password)
-        print("\nCopy this hash and paste it into your app/auth.py file for the 'testuser'.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+def generate_hash(password=None):
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    if not password:
+        password = getpass.getpass("Enter password to hash: ")
+    hashed = pwd_context.hash(password)
+    print("\nGenerated hash:")
+    print(hashed)
+    print("\nCopy this hash in app/auth.py for the user.")
 
 if __name__ == "__main__":
-    generate_hash()
+    pwd = sys.argv[1] if len(sys.argv) > 1 else None
+    generate_hash(pwd)

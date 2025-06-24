@@ -1,97 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 
-function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClient }) {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    onSearch(searchTerm);
-  };
+function ClientSearch({
+  onSearch,
+  clients,
+  loading,
+  onClientSelect,
+  selectedClient,
+}) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
-    // Auto-search as user types (with debouncing would be better)
-    if (value.length >= 2) {
-      onSearch(value);
-    } else if (value.length === 0) {
-      onSearch('');
-    }
+
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+
+    // Recherche après 400ms d'inactivité (évite de lancer à chaque lettre)
+    setDebounceTimeout(
+      setTimeout(() => {
+        if (value.length >= 2 || value.length === 0) {
+          onSearch(value);
+        }
+      }, 400)
+    );
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) onSearch(searchTerm.trim());
   };
 
   return (
     <div>
-      <h2 style={{ marginBottom: '20px' }}>Search Clients</h2>
-      
-      <form onSubmit={handleSearch} style={{ marginBottom: '20px' }}>
-        <div className="form-group">
-          <label htmlFor="search">Client Name</label>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <input
-              type="text"
-              id="search"
-              value={searchTerm}
-              onChange={handleInputChange}
-              placeholder="Enter client name to search..."
-              style={{ flex: 1 }}
-            />
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              disabled={loading || !searchTerm.trim()}
-            >
-              Search
-            </button>
-          </div>
+      <h2>Search Clients</h2>
+
+      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
+        <label htmlFor="search">Client Name</label>
+        <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+          <input
+            id="search"
+            type="text"
+            placeholder="Enter client name..."
+            value={searchTerm}
+            onChange={handleInputChange}
+            style={{ flex: 1, padding: "8px", fontSize: "14px" }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !searchTerm.trim()}
+            className="btn btn-primary"
+          >
+            Search
+          </button>
         </div>
       </form>
 
-      {loading && (
-        <div className="loading">
-          <p>Searching for clients...</p>
-        </div>
-      )}
+      {loading && <p>Loading clients...</p>}
 
       {!loading && clients.length > 0 && (
-        <div>
-          <h3>Search Results ({clients.length} found)</h3>
-          <ul className="client-list">
+        <>
+          <h3>Results ({clients.length})</h3>
+          <ul style={{ padding: 0, listStyle: "none" }}>
             {clients.map((client) => (
-              <li 
+              <li
                 key={client.customers_id || client.id}
-                className={`client-item ${selectedClient?.customers_id === client.customers_id ? 'selected' : ''}`}
                 onClick={() => onClientSelect(client)}
+                style={{
+                  cursor: "pointer",
+                  padding: "10px",
+                  marginBottom: "8px",
+                  backgroundColor:
+                    selectedClient?.customers_id === client.customers_id
+                      ? "#d0e7ff"
+                      : "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                }}
               >
-                <div>
-                  <strong>
-                    {client.first_name} {client.last_name}
-                  </strong>
-                </div>
-                {client.email && (
-                  <div style={{ color: '#666', fontSize: '14px' }}>
-                    Email: {client.email}
-                  </div>
-                )}
-                {client.phone && (
-                  <div style={{ color: '#666', fontSize: '14px' }}>
-                    Phone: {client.phone}
-                  </div>
-                )}
-                <div style={{ color: '#999', fontSize: '12px' }}>
+                <strong>
+                  {client.first_name} {client.last_name}
+                </strong>
+                <br />
+                {client.email && <small>Email: {client.email}</small>}
+                <br />
+                {client.phone && <small>Phone: {client.phone}</small>}
+                <br />
+                <small style={{ color: "#888" }}>
                   ID: {client.customers_id || client.id}
-                </div>
+                </small>
               </li>
             ))}
           </ul>
-        </div>
+        </>
       )}
 
       {!loading && searchTerm && clients.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-          <p>No clients found for "{searchTerm}"</p>
-          <p style={{ fontSize: '14px' }}>Try a different search term or sync customers from Hiboutik.</p>
-        </div>
+        <p>No clients found for "{searchTerm}"</p>
       )}
     </div>
   );

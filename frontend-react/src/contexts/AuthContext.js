@@ -1,13 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }
 
@@ -17,9 +15,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem("accessToken");
     if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Laisser api.js gérer l'ajout du token au header
       fetchUser();
     } else {
       setLoading(false);
@@ -28,11 +26,10 @@ export function AuthProvider({ children }) {
 
   const fetchUser = async () => {
     try {
-      const response = await api.get('/users/me');
+      const response = await api.get("/users/me");
       setUser(response.data);
       setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
+    } catch {
       logout();
     }
     setLoading(false);
@@ -40,48 +37,36 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
+      const formData = new URLSearchParams();
+      formData.append("username", username);
+      formData.append("password", password);
 
-      const response = await api.post('/token', formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      });
+      const response = await api.post("/token", formData);
+      const token = response.data.access_token;
 
-      const { access_token } = response.data;
-      localStorage.setItem('accessToken', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      localStorage.setItem("accessToken", token);
+      setIsAuthenticated(true);
 
       await fetchUser();
       return { success: true };
-    } catch (error) {
-      console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+    } catch (e) {
+      return {
+        success: false,
+        error: e.response?.data?.detail || "Login failed",
       };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('accessToken');
-    delete api.defaults.headers.common['Authorization'];
+    localStorage.removeItem("accessToken");
     setIsAuthenticated(false);
     setUser(null);
   };
 
-  const value = {
-    isAuthenticated,
-    user,
-    login,
-    logout,
-    loading
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, user, loading, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
