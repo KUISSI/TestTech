@@ -1,22 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 
-function ClientSearch({
+interface Client {
+  id?: string;
+  customers_id?: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+}
+
+interface Props {
+  onSearch: (term: string) => void;
+  clients: Client[];
+  loading: boolean;
+  onClientSelect: (client: Client) => void;
+  selectedClient: Client | null;
+}
+
+const ClientSearch: React.FC<Props> = ({
   onSearch,
   clients,
   loading,
   onClientSelect,
   selectedClient,
-}) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debounceTimeout, setDebounceTimeout] = useState(null);
+}) => {
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debounceTimeout, setDebounceTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
 
     if (debounceTimeout) clearTimeout(debounceTimeout);
 
-    // Recherche après 400ms d'inactivité (évite de lancer à chaque lettre)
     setDebounceTimeout(
       setTimeout(() => {
         if (value.length >= 2 || value.length === 0) {
@@ -26,7 +42,7 @@ function ClientSearch({
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) onSearch(searchTerm.trim());
   };
@@ -100,6 +116,6 @@ function ClientSearch({
       )}
     </div>
   );
-}
+};
 
 export default ClientSearch;

@@ -1,12 +1,39 @@
 import React, { useState, useEffect } from "react";
 import api from "../services/api";
 
-function ClientSales({ client }) {
-  const [sales, setSales] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [salesPerPage] = useState(5);
+interface Product {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface Sale {
+  sales_id?: string;
+  sale_id?: string;
+  total_tax_incl?: number;
+  total?: number;
+  date?: string;
+  products?: Product[];
+}
+
+interface Client {
+  id?: string;
+  customers_id?: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface ClientSalesProps {
+  client: Client | null;
+}
+
+const ClientSales: React.FC<ClientSalesProps> = ({ client }) => {
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [salesPerPage] = useState<number>(5);
 
   useEffect(() => {
     if (!client) return;
@@ -17,20 +44,21 @@ function ClientSales({ client }) {
 
       try {
         const clientId = client.customers_id || client.id;
-        const response = await api.get(`/clients/${clientId}/sales`);
+        if (!clientId) throw new Error("Client ID not found");
+
+        const response = await api.get<Sale[]>(`/clients/${clientId}/sales`);
         setSales(response.data);
         setCurrentPage(1);
       } catch (err) {
-        setError("Failed to load sales data");
         console.error("Sales loading error:", err);
+        setError("Failed to load sales data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchSalesData();
-  }, [client?.customers_id, client?.id]); // Seules les dépendances nécessaires
-  // Calculate pagination
+  }, [client?.customers_id, client?.id]);
 
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
@@ -49,14 +77,13 @@ function ClientSales({ client }) {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("fr-FR", {
+  const formatCurrency = (amount: number): string =>
+    new Intl.NumberFormat("fr-FR", {
       style: "currency",
       currency: "EUR",
     }).format(amount);
-  };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString("fr-FR");
@@ -65,9 +92,7 @@ function ClientSales({ client }) {
     }
   };
 
-  if (!client) {
-    return null;
-  }
+  if (!client) return null;
 
   return (
     <div>
@@ -86,9 +111,7 @@ function ClientSales({ client }) {
       {!loading && !error && (
         <>
           {sales.length === 0 ? (
-            <div
-              style={{ textAlign: "center", padding: "40px", color: "#666" }}
-            >
+            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <p>No sales found for this client.</p>
             </div>
           ) : (
@@ -100,7 +123,7 @@ function ClientSales({ client }) {
                   {formatCurrency(
                     sales.reduce(
                       (sum, sale) =>
-                        sum + +(sale.total_tax_incl || sale.total || 0),
+                        sum + (sale.total_tax_incl || sale.total || 0),
                       0
                     )
                   )}
@@ -110,7 +133,7 @@ function ClientSales({ client }) {
               <div className="sales-grid">
                 {currentSales.map((sale, index) => (
                   <div
-                    key={sale.sales_id || sale.sale_id || index}
+                    key={sale.sales_id || sale.sale_id || `sale-${index}`}
                     className="sale-item"
                   >
                     <h4>Sale #{sale.sales_id || sale.sale_id || index + 1}</h4>
@@ -125,8 +148,7 @@ function ClientSales({ client }) {
                     )}
                     {sale.products && sale.products.length > 0 && (
                       <p>
-                        <strong>Items:</strong> {sale.products.length}{" "}
-                        product(s)
+                        <strong>Items:</strong> {sale.products.length} product(s)
                       </p>
                     )}
                   </div>
@@ -162,6 +184,6 @@ function ClientSales({ client }) {
       )}
     </div>
   );
-}
+};
 
 export default ClientSales;

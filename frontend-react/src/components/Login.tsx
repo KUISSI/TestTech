@@ -1,19 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, FormEvent } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
-function Login() {
-  const [username, setUsername] = useState("testuser");
-  const [password, setPassword] = useState("testpass");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+const Login: React.FC = () => {
+  const [username, setUsername] = useState<string>("testuser");
+  const [password, setPassword] = useState<string>("testpass");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
   const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     const result = await login(username, password);
-    if (!result.success) setError(result.error);
+    if (!result.success) {
+      setError(result.error);
+    }
+
     setLoading(false);
   };
 
@@ -78,6 +83,6 @@ function Login() {
       </div>
     </div>
   );
-}
+};
 
 export default Login;
