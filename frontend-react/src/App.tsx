@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./components/Dashboard/Dashboard";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Composant principal de l'application
