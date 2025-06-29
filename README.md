@@ -93,17 +93,21 @@ Pour ajouter un nouvel utilisateur à la base de données SQLite :
    # Depuis la racine du projet, avec l'environnement virtuel activé
    python app/create_test_user.py
    ```
+
    Par défaut, ce script crée l'utilisateur `testuser` avec le mot de passe `testpass`.
 
 2. **Pour créer un utilisateur personnalisé :**
 
    Modifiez le fichier `app/create_test_user.py` :
+
    ```python
    if __name__ == "__main__":
        init_db()
        create_user("nouvelutilisateur", "motdepasse")
    ```
+
    Puis exécutez à nouveau :
+
    ```powershell
    python app/create_test_user.py
    ```
@@ -111,6 +115,7 @@ Pour ajouter un nouvel utilisateur à la base de données SQLite :
 3. **(Optionnel) Générer un hash de mot de passe :**
 
    Si vous souhaitez générer un hash manuellement :
+
    ```powershell
    python generate_hash.py
    ```
@@ -196,7 +201,7 @@ npm run test:react
 >
 > Si le problème persiste, utilisez Node.js 20 ou 18 (LTS) avec [nvm-windows](https://github.com/coreybutler/nvm-windows/releases).
 
-## Persistance des Données
+## Persistance de Données
 
 L'application utilise désormais **exclusivement** une base de données **SQLite** (`littlebill.db`) pour la persistance des données côté backend. **Tous les utilisateurs, clients et ventes sont stockés et accédés via la base de données.**
 
