@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 
-function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClient }) {
+interface Client {
+  customers_id?: number;
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface ClientSearchProps {
+  onSearch: (searchTerm: string) => void;
+  clients: Client[];
+  loading: boolean;
+  onClientSelect: (client: Client) => void;
+  selectedClient?: Client | null;
+}
+
+const ClientSearch: React.FC<ClientSearchProps> = ({ onSearch, clients, loading, onClientSelect, selectedClient }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(searchTerm);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    
-    // Auto-search as user types (with debouncing would be better)
     if (value.length >= 2) {
       onSearch(value);
     } else if (value.length === 0) {
@@ -23,7 +38,6 @@ function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClie
   return (
     <div>
       <h2 style={{ marginBottom: '20px' }}>Search Clients</h2>
-      
       <form onSubmit={handleSearch} style={{ marginBottom: '20px' }}>
         <div className="form-group">
           <label htmlFor="search">Client Name</label>
@@ -36,8 +50,8 @@ function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClie
               placeholder="Enter client name to search..."
               style={{ flex: 1 }}
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-primary"
               disabled={loading || !searchTerm.trim()}
             >
@@ -46,19 +60,17 @@ function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClie
           </div>
         </div>
       </form>
-
       {loading && (
         <div className="loading">
           <p>Searching for clients...</p>
         </div>
       )}
-
       {!loading && clients.length > 0 && (
         <div>
           <h3>Search Results ({clients.length} found)</h3>
           <ul className="client-list">
             {clients.map((client) => (
-              <li 
+              <li
                 key={client.customers_id || client.id}
                 className={`client-item ${selectedClient?.customers_id === client.customers_id ? 'selected' : ''}`}
                 onClick={() => onClientSelect(client)}
@@ -86,7 +98,6 @@ function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClie
           </ul>
         </div>
       )}
-
       {!loading && searchTerm && clients.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
           <p>No clients found for "{searchTerm}"</p>
@@ -95,6 +106,6 @@ function ClientSearch({ onSearch, clients, loading, onClientSelect, selectedClie
       )}
     </div>
   );
-}
+};
 
 export default ClientSearch;

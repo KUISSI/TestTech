@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
-function ClientSales({ client }) {
-  const [sales, setSales] = useState([]);
+interface Sale {
+  sales_id?: number;
+  sale_id?: number;
+  total_tax_incl?: number;
+  total?: number;
+  date?: string;
+  products?: any[];
+}
+
+interface Client {
+  customers_id?: number;
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface ClientSalesProps {
+  client: Client;
+}
+
+const ClientSales: React.FC<ClientSalesProps> = ({ client }) => {
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -12,6 +32,7 @@ function ClientSales({ client }) {
     if (client) {
       loadSales();
     }
+    // eslint-disable-next-line
   }, [client]);
 
   const loadSales = async () => {
@@ -22,7 +43,7 @@ function ClientSales({ client }) {
       const clientId = client.customers_id || client.id;
       const response = await api.get(`/clients/${clientId}/sales`);
       setSales(response.data);
-      setCurrentPage(1); // Reset to first page when loading new client
+      setCurrentPage(1);
     } catch (err) {
       setError('Failed to load sales data');
       console.error('Sales loading error:', err);
@@ -31,7 +52,6 @@ function ClientSales({ client }) {
     setLoading(false);
   };
 
-  // Calculate pagination
   const indexOfLastSale = currentPage * salesPerPage;
   const indexOfFirstSale = indexOfLastSale - salesPerPage;
   const currentSales = sales.slice(indexOfFirstSale, indexOfLastSale);
@@ -49,14 +69,14 @@ function ClientSales({ client }) {
     }
   };
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'EUR'
+      currency: 'EUR',
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('fr-FR');
@@ -81,11 +101,7 @@ function ClientSales({ client }) {
         </div>
       )}
 
-      {error && (
-        <div className="alert alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-error">{error}</div>}
 
       {!loading && !error && (
         <>
@@ -127,19 +143,19 @@ function ClientSales({ client }) {
 
               {totalPages > 1 && (
                 <div className="pagination">
-                  <button 
+                  <button
                     onClick={goToPreviousPage}
                     disabled={currentPage === 1}
                     className="btn btn-secondary"
                   >
                     Previous
                   </button>
-                  
+
                   <span className="page-info">
                     Page {currentPage} of {totalPages}
                   </span>
-                  
-                  <button 
+
+                  <button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                     className="btn btn-secondary"
@@ -154,6 +170,6 @@ function ClientSales({ client }) {
       )}
     </div>
   );
-}
+};
 
 export default ClientSales;

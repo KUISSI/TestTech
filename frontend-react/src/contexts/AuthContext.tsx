@@ -1,7 +1,20 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
 
-const AuthContext = createContext();
+interface User {
+  username: string;
+  // Add other user fields as needed
+}
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -11,9 +24,13 @@ export function useAuth() {
   return context;
 }
 
-export function AuthProvider({ children }) {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +41,7 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false);
     }
+    // eslint-disable-next-line
   }, []);
 
   const fetchUser = async () => {
@@ -38,29 +56,26 @@ export function AuthProvider({ children }) {
     setLoading(false);
   };
 
-  const login = async (username, password) => {
+  const login = async (username: string, password: string) => {
     try {
       const formData = new FormData();
       formData.append('username', username);
       formData.append('password', password);
-
       const response = await api.post('/token', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       });
-
       const { access_token } = response.data;
       localStorage.setItem('accessToken', access_token);
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-
       await fetchUser();
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+      return {
+        success: false,
+        error: error.response?.data?.detail || 'Login failed',
       };
     }
   };
@@ -72,17 +87,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const value = {
+  const value: AuthContextType = {
     isAuthenticated,
     user,
     login,
     logout,
-    loading
+    loading,
   };
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 }
