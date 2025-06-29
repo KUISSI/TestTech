@@ -1,6 +1,6 @@
 # LittleBill - Gestion de Clients et Ventes
 
-Ce projet est une application web full-stack pour la gestion de clients et de ventes, construite avec un backend en Python (FastAPI) et un frontend en React. L'application comprend une interface utilisateur moderne en React, une authentification sécurisée, une persistance des données basée sur des fichiers et des tests complets.
+Ce projet est une application web full-stack pour la gestion de clients et de ventes, construite avec un backend en Python (FastAPI) et un frontend en React. L'application comprend une interface utilisateur moderne en React, une authentification sécurisée, une persistance des données basée sur une base de données SQLite, et des tests complets.
 
 ## Fonctionnalités
 
@@ -9,7 +9,7 @@ Ce projet est une application web full-stack pour la gestion de clients et de ve
 - **Authentification** : ✅ Authentification basée sur JWT avec hachage de mot de passe sécurisé
 - **Recherche de Clients** : ✅ Recherche de clients en temps réel avec auto-complétion
 - **Gestion des Ventes** : ✅ Affichage des ventes par client avec pagination
-- **Persistance des Données** : ✅ Système de mise en cache basé sur des fichiers (fichiers JSON)
+- **Persistance des Données** : ✅ Toutes les données (utilisateurs, clients, ventes) sont stockées dans une base SQLite (`littlebill.db`)
 - **Intégration API** : ✅ Intégration de l'API Hiboutik avec gestion des erreurs
 - **Tests** : ✅ Tests unitaires complets avec pytest
 
@@ -135,7 +135,11 @@ Vous pouvez consulter les clients et les ventes directement dans la base SQLite�
    ```sql
    SELECT * FROM sales;
    ```
-5. **Quitter le shell :**
+5. **Afficher tous les utilisateurs :**
+   ```sql
+   SELECT * FROM users;
+   ```
+6. **Quitter le shell :**
    ```sql
    .exit
    ```
@@ -194,13 +198,57 @@ npm run test:react
 
 ## Persistance des Données
 
-L'application utilise principalement une base de données **SQLite** (`littlebill.db`) pour la persistance des données côté backend. Les fichiers **JSON** dans le répertoire `data/` servent de cache et pour la gestion des utilisateurs.
+L'application utilise désormais **exclusivement** une base de données **SQLite** (`littlebill.db`) pour la persistance des données côté backend. **Tous les utilisateurs, clients et ventes sont stockés et accédés via la base de données.**
 
-L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
+- Les fichiers **JSON** dans le répertoire `data/` ne sont plus utilisés pour la gestion des utilisateurs, clients ou ventes.
+- Toute la logique d'authentification, de recherche, de synchronisation et de cache passe par la base de données SQLite.
+- Lors de la synchronisation ou de la recherche, les données sont récupérées via l'API Hiboutik et stockées dans la base de données si nécessaire.
 
-- **Gestion des Utilisateurs** : `users.json` - Stocke les identifiants des utilisateurs
-- **Cache des Clients** : `customers.json` - Données des clients mises en cache de l'API Hiboutik
-- **Cache des Ventes** : `sales.json` - Données des ventes mises en cache pour les clients
+### Gestion des Utilisateurs
+
+- Les utilisateurs sont créés et stockés dans la table `users` de la base de données.
+- Pour ajouter un utilisateur, utilisez le script Python :
+  ```powershell
+  python app/create_test_user.py
+  ```
+  Par défaut, ce script crée l'utilisateur `testuser` avec le mot de passe `testpass`.
+- Pour créer un utilisateur personnalisé, modifiez le script comme indiqué plus haut.
+- L'authentification (login) utilise la base de données et non plus un fichier JSON.
+
+### Gestion des Clients et Ventes
+
+- Les clients et ventes sont stockés dans les tables `customers` et `sales`.
+- Les endpoints API accèdent et mettent à jour ces tables via SQLAlchemy.
+- Lorsqu'une synchronisation ou une recherche est effectuée, les données sont récupérées de l'API Hiboutik et insérées dans la base de données si besoin.
+
+### Inspection de la Base de Données
+
+Vous pouvez consulter les utilisateurs, clients et ventes directement dans la base SQLite :
+
+1. **Ouvrir le shell SQLite :**
+   ```powershell
+   sqlite3 littlebill.db
+   ```
+2. **Lister les tables :**
+   ```sql
+   .tables
+   ```
+3. **Afficher tous les utilisateurs :**
+   ```sql
+   SELECT * FROM users;
+   ```
+4. **Afficher tous les clients :**
+   ```sql
+   SELECT * FROM customers;
+   ```
+5. **Afficher toutes les ventes :**
+   ```sql
+   SELECT * FROM sales;
+   ```
+6. **Quitter le shell :**
+   ```sql
+   .exit
+   ```
 
 ## Fonctionnalités de l'Application
 
@@ -209,7 +257,7 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 - **UI Moderne** : Design épuré et réactif avec des composants React (TypeScript)
 - **Authentification** : Connexion/déconnexion avec gestion des tokens JWT
 - **Recherche de Clients** : Recherche en temps réel avec auto-complétion
-- **Visualisation des Ventes** : Affichage paginé des ventes avec informations détailléess
+- **Visualisation des Ventes** : Affichage paginé des ventes avec informations détaillées
 - **Gestion des Erreurs** : Messages d'erreur conviviaux et états de chargement
 - **Routage** : Routes protégées avec vérifications d'authentification
 - **Tests** : Tests unitaires avec Jest et React Testing Library (`App.test.tsx`)
@@ -218,7 +266,7 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 
 - **API RESTful** : Points de terminaison bien structurés avec documentation OpenAPI
 - **Authentification** : Sécurité basée sur JWT avec hachage de mot de passe bcrypt
-- **Mise en Cache des Données** : Système de mise en cache intelligent pour réduire les appels API
+- **Gestion des Données** : Toutes les opérations CRUD utilisent SQLite via SQLAlchemy
 - **Gestion des Erreurs** : Gestion et journalisation complètes des erreurs
 - **Support CORS** : Configuré pour le serveur de développement React
 - **Tests** : Tests unitaires backend avec pytest (`tests/test_app.py`)
@@ -252,12 +300,8 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 │   ├── auth.py                  # Logique d'authentification
 │   ├── database.py              # Configuration de la base de données (SQLite)
 │   ├── main.py                  # Application FastAPI
-│   └── models.py                # Modèles Pydantic
+│   └── models.py                # Modèles SQLAlchemy
 ├── littlebill.db                # Base de données SQLite principale
-├── data/                        # Stockage des Données (cache et utilisateurs)
-│   ├── customers.json           # Cache des clients
-│   ├── sales.json               # Cache des ventes
-│   └── users.json               # Données des utilisateurs
 ├── tests/                       # Suite de Tests Backend
 │   └── test_app.py
 ├── generate_hash.py             # Utilitaire de hachage de mot de passe
@@ -283,12 +327,6 @@ Le projet suit les meilleures pratiques :
 - **Frontend** : React avec hooks, contexte pour la gestion d'état et séparation des composants
 - **Sécurité** : Authentification JWT, hachage de mot de passe et configuration CORS
 - **Tests** : Couverture de test complète pour les points de terminaison API
-
-2. **Servir avec FastAPI** :
-   Mettre à jour FastAPI pour servir les fichiers React construits
-
-3. **Variables d'environnement** :
-   Configurer les URL et secrets API de production
 
 ## Remarques
 
