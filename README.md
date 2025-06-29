@@ -174,7 +174,7 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 - **UI Moderne** : Design épuré et réactif avec des composants React (TypeScript)
 - **Authentification** : Connexion/déconnexion avec gestion des tokens JWT
 - **Recherche de Clients** : Recherche en temps réel avec auto-complétion
-- **Visualisation des Ventes** : Affichage paginé des ventes avec informations détaillées
+- **Visualisation des Ventes** : Affichage paginé des ventes avec informations détailléess
 - **Gestion des Erreurs** : Messages d'erreur conviviaux et états de chargement
 - **Routage** : Routes protégées avec vérifications d'authentification
 - **Tests** : Tests unitaires avec Jest et React Testing Library (`App.test.tsx`)
