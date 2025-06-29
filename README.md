@@ -120,12 +120,44 @@ pytest -v
 
 ### Tests Frontend (Optionnel)
 
-Exécutez les tests React :
+> **Note importante :**
+> Node.js 22 n'est pas encore totalement supporté par Jest/jsdom. Pour exécuter les tests frontend, il est recommandé d'utiliser Node.js 20 (LTS) ou Node.js 18 (LTS). Si vous ne pouvez pas changer de version Node, essayez de mettre à jour Jest et jsdom à leurs dernières versions, mais des erreurs peuvent persister.
+
+#### Installation des dépendances de test (obligatoire pour les tests React)
+
+Dans le dossier `frontend-react`, exécutez :
+
+```powershell
+npm install --save-dev jest @types/jest ts-jest @testing-library/react @testing-library/jest-dom @testing-library/user-event identity-obj-proxy
+```
+
+#### Configuration de Jest (déjà incluse)
+
+- Un fichier `jest.config.js` est présent dans `frontend-react` pour la configuration TypeScript et React.
+- Un fichier `src/setupTests.ts` est utilisé pour initialiser Testing Library.
+
+#### Exécuter les tests React avec Jest (recommandé)
 
 ```powershell
 # Depuis le répertoire frontend-react
 npm test
 ```
+
+#### Exécuter les tests React avec react-scripts (alternative)
+
+```powershell
+# Depuis le répertoire frontend-react
+npm run test:react
+```
+
+> **Astuce :**
+> Si vous rencontrez des erreurs liées à jsdom ou Jest avec Node.js 22, essayez d'abord de mettre à jour Jest et jsdom :
+>
+> ```powershell
+> npm install --save-dev jest@latest jsdom@latest jest-environment-jsdom@latest
+> ```
+>
+> Si le problème persiste, utilisez Node.js 20 ou 18 (LTS) avec [nvm-windows](https://github.com/coreybutler/nvm-windows/releases).
 
 ## Persistance des Données
 
@@ -139,12 +171,13 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 
 ### Frontend React
 
-- **UI Moderne** : Design épuré et réactif avec des composants React
+- **UI Moderne** : Design épuré et réactif avec des composants React (TypeScript)
 - **Authentification** : Connexion/déconnexion avec gestion des tokens JWT
 - **Recherche de Clients** : Recherche en temps réel avec auto-complétion
 - **Visualisation des Ventes** : Affichage paginé des ventes avec informations détaillées
 - **Gestion des Erreurs** : Messages d'erreur conviviaux et états de chargement
 - **Routage** : Routes protégées avec vérifications d'authentification
+- **Tests** : Tests unitaires avec Jest et React Testing Library (`App.test.tsx`)
 
 ### Backend FastAPI
 
@@ -153,36 +186,30 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 - **Mise en Cache des Données** : Système de mise en cache intelligent pour réduire les appels API
 - **Gestion des Erreurs** : Gestion et journalisation complètes des erreurs
 - **Support CORS** : Configuré pour le serveur de développement React
-
-### Points de Terminaison API
-
-- `POST /token` - Authentification de l'utilisateur et génération de token JWT
-- `GET /users/me` - Obtenir les informations sur l'utilisateur actuel
-- `GET /clients` - Rechercher des clients par nom
-- `GET /clients/{client_id}/sales` - Obtenir toutes les ventes pour un client
-- `GET /clients/{client_id}/sales_paginated` - Obtenir les ventes paginées
-- `POST /sync_customers` - Synchroniser manuellement les clients depuis l'API Hiboutik
+- **Tests** : Tests unitaires backend avec pytest (`tests/test_app.py`)
 
 ## Structure du Projet
 
 ```
-littlebill_test/
 ├── frontend-react/              # Frontend React
 │   ├── public/
 │   │   └── index.html
 │   ├── src/
-│   │   ├── components/          # Composants React
-│   │   │   ├── Login.js
-│   │   │   ├── Dashboard.js
-│   │   │   ├── ClientSearch.js
-│   │   │   └── ClientSales.js
+│   │   ├── components/          # Composants React (TypeScript)
+│   │   │   ├── Login.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── ClientSearch.tsx
+│   │   │   └── ClientSales.tsx
 │   │   ├── contexts/            # Contexte React
-│   │   │   └── AuthContext.js
+│   │   │   └── AuthContext.tsx
 │   │   ├── services/            # Services API
-│   │   │   └── api.js
-│   │   ├── App.js
-│   │   ├── index.js
+│   │   │   └── api.ts
+│   │   ├── App.tsx
+│   │   ├── App.test.tsx
+│   │   ├── index.tsx
 │   │   └── index.css
+│   ├── jest.config.js           # Config Jest pour tests React/TS
+│   ├── src/setupTests.ts        # Setup Testing Library
 │   ├── package.json
 │   └── package-lock.json
 ├── app/                         # Backend FastAPI
@@ -195,7 +222,7 @@ littlebill_test/
 │   ├── customers.json           # Cache des clients
 │   ├── sales.json               # Cache des ventes
 │   └── users.json               # Données des utilisateurs
-├── tests/                       # Suite de Tests
+├── tests/                       # Suite de Tests Backend
 │   └── test_app.py
 ├── generate_hash.py             # Utilitaire de hachage de mot de passe
 ├── requirements.txt             # Dépendances Python
@@ -220,17 +247,6 @@ Le projet suit les meilleures pratiques :
 - **Frontend** : React avec hooks, contexte pour la gestion d'état et séparation des composants
 - **Sécurité** : Authentification JWT, hachage de mot de passe et configuration CORS
 - **Tests** : Couverture de test complète pour les points de terminaison API
-
-## Déploiement
-
-Pour le déploiement en production :
-
-1. **Construire le frontend React** :
-
-   ```powershell
-   cd frontend-react
-   npm run build
-   ```
 
 2. **Servir avec FastAPI** :
    Mettre à jour FastAPI pour servir les fichiers React construits
