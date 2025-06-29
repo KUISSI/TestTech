@@ -1,21 +1,13 @@
 from datetime import datetime, timedelta
 from typing import Optional
-import json
-from pathlib import Path
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session
 
-USERS_FILE = Path("data") / "users.json"
-
-def load_users() -> dict:
-    if not USERS_FILE.exists():
-        return {}
-    with open(USERS_FILE, "r", encoding="utf-8") as f:
-        users_list = json.load(f)
-        return {user["username"]: user for user in users_list}
+from app.database import SessionLocal, init_db
+from app.models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -40,12 +32,18 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
+
 def authenticate_user(username: str, password: str):
-    users_db = load_users()
-    user = users_db.get(username)
-    if not user or not verify_password(password, user["hashed_password"]):
+    db = SessionLocal()
+    user = get_user_by_username(db, username)
+    db.close()
+    if not user:
         return False
-    return user
+    if not verify_password(password, user.hashed_password):
+        return False
+    return {"username": user.username, "hashed_password": user.hashed_password}
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -60,9 +58,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
-    users_db = load_users()
-    user = users_db.get(username)
+    db = SessionLocal()
+    user = get_user_by_username(db, username)
+    db.close()
     if user is None:
         raise credentials_exception
-    return user
+    return {"username": user.username}

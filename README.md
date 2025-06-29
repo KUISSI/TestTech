@@ -83,28 +83,61 @@ L'application est fournie avec un utilisateur test préconfiguré :
 - **Nom d'utilisateur** : `testuser`
 - **Mot de passe** : `testpass`
 
-### Création de Nouveaux Utilisateurs
+### Ajouter un Utilisateur à la Base de Données
 
-Pour créer des utilisateurs supplémentaires :
+Pour ajouter un nouvel utilisateur à la base de données SQLite :
 
-1. **Générez un hachage de mot de passe** :
+1. **Utilisez le script Python fourni :**
 
    ```powershell
-   python generate_hash.py "votre_mot_de_passe_ici"
+   # Depuis la racine du projet, avec l'environnement virtuel activé
+   python app/create_test_user.py
+   ```
+   Par défaut, ce script crée l'utilisateur `testuser` avec le mot de passe `testpass`.
+
+2. **Pour créer un utilisateur personnalisé :**
+
+   Modifiez le fichier `app/create_test_user.py` :
+   ```python
+   if __name__ == "__main__":
+       init_db()
+       create_user("nouvelutilisateur", "motdepasse")
+   ```
+   Puis exécutez à nouveau :
+   ```powershell
+   python app/create_test_user.py
    ```
 
-2. **Ajoutez l'utilisateur au fichier `data/users.json`** :
-   ```json
-   [
-     {
-       "username": "testuser",
-       "hashed_password": "$2b$12$dKIxgTQ4QDCruNtuYhJhTOscO7kua8y3ZA2lamlJs.GMSzM5dwS7S"
-     },
-     {
-       "username": "newuser",
-       "hashed_password": "generated_hash_here"
-     }
-   ]
+3. **(Optionnel) Générer un hash de mot de passe :**
+
+   Si vous souhaitez générer un hash manuellement :
+   ```powershell
+   python generate_hash.py
+   ```
+
+## Vérifier les Clients et les Ventes dans la Base de Données
+
+Vous pouvez consulter les clients et les ventes directement dans la base SQLite :
+
+1. **Ouvrir le shell SQLite :**
+   ```powershell
+   sqlite3 littlebill.db
+   ```
+2. **Lister les tables :**
+   ```sql
+   .tables
+   ```
+3. **Afficher tous les clients :**
+   ```sql
+   SELECT * FROM customers;
+   ```
+4. **Afficher toutes les ventes :**
+   ```sql
+   SELECT * FROM sales;
+   ```
+5. **Quitter le shell :**
+   ```sql
+   .exit
    ```
 
 ## Tests
@@ -161,6 +194,8 @@ npm run test:react
 
 ## Persistance des Données
 
+L'application utilise principalement une base de données **SQLite** (`littlebill.db`) pour la persistance des données côté backend. Les fichiers **JSON** dans le répertoire `data/` servent de cache et pour la gestion des utilisateurs.
+
 L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 
 - **Gestion des Utilisateurs** : `users.json` - Stocke les identifiants des utilisateurs
@@ -215,10 +250,11 @@ L'application utilise des **fichiers JSON** dans le répertoire `data/` pour :
 ├── app/                         # Backend FastAPI
 │   ├── api.py                   # Points de terminaison API
 │   ├── auth.py                  # Logique d'authentification
-│   ├── database.py              # Configuration de la base de données
+│   ├── database.py              # Configuration de la base de données (SQLite)
 │   ├── main.py                  # Application FastAPI
 │   └── models.py                # Modèles Pydantic
-├── data/                        # Stockage des Données
+├── littlebill.db                # Base de données SQLite principale
+├── data/                        # Stockage des Données (cache et utilisateurs)
 │   ├── customers.json           # Cache des clients
 │   ├── sales.json               # Cache des ventes
 │   └── users.json               # Données des utilisateurs

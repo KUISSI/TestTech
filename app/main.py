@@ -2,12 +2,15 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import router as api_router
 from app.auth import authenticate_user, create_access_token, get_current_user
+from app.database import init_db
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 
 app = FastAPI(title="LittleBill API",
               description="Client and Sales Management API")
+
+init_db()  # Initialize DB on startup
 
 # Pydantic model for the token response
 

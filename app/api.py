@@ -1,9 +1,11 @@
-import httpx
 from fastapi import APIRouter, HTTPException, Depends
 import logging
+from sqlalchemy.orm import Session
+from app.auth import get_current_user
+from app.database import SessionLocal, init_db
+from app.models import Customer, Sale
+import httpx
 import json
-from pathlib import Path
-from .auth import get_current_user
 
 logging.basicConfig(level=logging.INFO)
 router = APIRouter()
@@ -12,22 +14,79 @@ HIBOUTIK_BASE_URL = "https://techtest.hiboutik.com/api"
 API_USER = "techtest@gmail.com"
 API_KEY = "2OZ58K8MYZV56SFA59NG2PQ2HYW4C6280IT"
 
-DATA_DIR = Path("data")
-CUSTOMERS_FILE = DATA_DIR / "customers.json"
-SALES_FILE = DATA_DIR / "sales.json"
+# --- DB Helpers ---
 
-# --- File-based Caching Helpers ---
+def get_customer_by_name(db: Session, name: str):
+    search_term = name.lower()
+    return db.query(Customer).filter(
+        (Customer.last_name.ilike(f"%{search_term}%")) |
+        (Customer.first_name.ilike(f"%{search_term}%"))
+    ).all()
 
-def load_from_file(path: Path) -> list | dict:
-    if not path.exists():
-        return [] if str(path).endswith('s.json') else {}
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def get_customer_by_customers_id(db: Session, customers_id: int):
+    return db.query(Customer).filter(Customer.customers_id == customers_id).first()
 
-def save_to_file(path: Path, data):
-    DATA_DIR.mkdir(exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def add_or_update_customers(db: Session, customers: list):
+    for c in customers:
+        db_customer = db.query(Customer).filter(Customer.customers_id == c.get("customers_id", c.get("id"))).first()
+        if not db_customer:
+            db_customer = Customer(
+                customers_id=c.get("customers_id", c.get("id")),
+                first_name=c.get("first_name"),
+                last_name=c.get("last_name"),
+                email=c.get("email"),
+                phone=c.get("phone")
+            )
+            db.add(db_customer)
+    db.commit()
+
+def add_or_update_sales(db: Session, client_id: int, sales: list):
+    customer = db.query(Customer).filter(Customer.customers_id == client_id).first()
+    if not customer:
+        logging.warning(f"No customer found in DB for client_id={client_id} when adding sales.")
+        return
+    for s in sales:
+        # Accept both 'sale_id' and 'sales_id' as keys
+        sale_id = s.get("sale_id") or s.get("sales_id")
+        # Accept both 'total' as float or string
+        total = s.get("total")
+        if total is None:
+            total = s.get("total_tax_incl")
+        if isinstance(total, str):
+            try:
+                total = float(total)
+            except Exception:
+                total = 0.0
+        total_tax_incl = s.get("total_tax_incl")
+        if total_tax_incl is None:
+            total_tax_incl = s.get("total")
+        if isinstance(total_tax_incl, str):
+            try:
+                total_tax_incl = float(total_tax_incl)
+            except Exception:
+                total_tax_incl = None
+        date = s.get("date") or s.get("created_at") or s.get("completed_at")
+        products = s.get("products", [])
+        if not isinstance(products, list):
+            try:
+                products = json.loads(products)
+            except Exception:
+                products = []
+        db_sale = db.query(Sale).filter(Sale.sale_id == sale_id, Sale.customer_id == customer.id).first()
+        if not db_sale:
+            db_sale = Sale(
+                sale_id=sale_id,
+                total=total,
+                total_tax_incl=total_tax_incl,
+                date=date,
+                products=json.dumps(products),
+                customer_id=customer.id
+            )
+            db.add(db_sale)
+            logging.info(f"Added sale {sale_id} for customer {customer.customers_id} (total={total}, total_tax_incl={total_tax_incl}, date={date})")
+        else:
+            logging.info(f"Sale {sale_id} for customer {customer.customers_id} already exists in DB.")
+    db.commit()
 
 # --- Hiboutik API Fetching ---
 
@@ -40,11 +99,27 @@ async def sync_customers_from_hiboutik():
             response = await client.get(url, headers=headers, auth=auth)
             response.raise_for_status()
             customers = response.json()
-            save_to_file(CUSTOMERS_FILE, customers)
-            logging.info(f"Successfully synced and saved {len(customers)} customers.")
+            db = SessionLocal()
+            add_or_update_customers(db, customers)
+            db.close()
+            logging.info(f"Successfully synced and saved {len(customers)} customers to DB.")
             return customers
         except Exception as e:
             logging.error(f"Error fetching customers from Hiboutik: {e}")
+            return []
+
+async def fetch_sales_from_hiboutik(client_id: int):
+    url = f"{HIBOUTIK_BASE_URL}/customer/{client_id}/sales"  # Fixed endpoint (singular 'customer')
+    headers = {"accept": "application/json"}
+    auth = httpx.BasicAuth(API_USER, API_KEY)
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, auth=auth)
+            response.raise_for_status()
+            sales = response.json()
+            return sales
+        except Exception as e:
+            logging.error(f"Error fetching sales for client {client_id} from Hiboutik: {e}")
             return []
 
 # --- API Endpoints ---
@@ -58,64 +133,57 @@ async def sync_customers(current_user: dict = Depends(get_current_user)):
 
 @router.get("/clients")
 async def get_clients(name: str, current_user: dict = Depends(get_current_user)):
-    customers = load_from_file(CUSTOMERS_FILE)
+    db = SessionLocal()
+    customers = get_customer_by_name(db, name)
     if not customers:
-        logging.info("No local customers found, attempting to sync from Hiboutik.")
+        logging.info("No local customers found in DB, attempting to sync from Hiboutik.")
         customers = await sync_customers_from_hiboutik()
-
-    search_term = name.lower()
-    filtered = [
-        c for c in customers
-        if search_term in c.get("last_name", "").lower() or search_term in c.get("first_name", "").lower()
+        add_or_update_customers(db, customers)
+        customers = get_customer_by_name(db, name)
+    db.close()
+    return [
+        {
+            "customers_id": c.customers_id,
+            "first_name": c.first_name,
+            "last_name": c.last_name,
+            "email": c.email,
+            "phone": c.phone
+        } for c in customers
     ]
-    logging.info(f"Found {len(filtered)} clients matching '{name}' from local file.")
-    return filtered
 
 @router.get("/clients/{client_id}/sales")
 async def get_sales(client_id: int, current_user: dict = Depends(get_current_user)):
-    all_sales = load_from_file(SALES_FILE)
-    client_id_str = str(client_id)
-
-    if client_id_str in all_sales:
-        logging.info(f"Found sales for client {client_id} in local cache.")
-        return all_sales[client_id_str]
-
-    logging.info(f"No local sales found for client {client_id}, fetching from Hiboutik.")
-    url = f"{HIBOUTIK_BASE_URL}/customer/{client_id}/sales"
-    headers = {"accept": "application/json"}
-    auth = httpx.BasicAuth(API_USER, API_KEY)
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(url, headers=headers, auth=auth)
-            response.raise_for_status()
-            sales_data = response.json()
-            
-            # Save the new sales data to the cache
-            all_sales[client_id_str] = sales_data
-            save_to_file(SALES_FILE, all_sales)
-            logging.info(f"Saved sales for client {client_id} to local cache.")
-            
-            return sales_data
-        except Exception as e:
-            logging.error(f"Error fetching sales for client {client_id}: {e}")
-            return []
-
-@router.get("/clients/{client_id}/sales_paginated")
-async def get_sales_paginated(client_id: int, page: int = 1, size: int = 10, current_user: dict = Depends(get_current_user)):
-    """
-    Retrieves paginated sales for a given client.
-    Fetches all sales and applies pagination.
-    """
-    # This reuses the logic from get_sales to fetch all sales for the client
-    all_client_sales = await get_sales(client_id, current_user)
-
-    if not isinstance(all_client_sales, list):
-        # If get_sales returned an error (like a HTTPException), propagate it
-        return all_client_sales
-
-    start = (page - 1) * size
-    end = start + size
-    paginated_sales = all_client_sales[start:end]
-
-    logging.info(f"Returning {len(paginated_sales)} paginated sales for client {client_id} (page {page}, size {size}).")
-    return paginated_sales
+    db = SessionLocal()
+    customer = db.query(Customer).filter(Customer.customers_id == client_id).first()
+    if not customer:
+        db.close()
+        return []
+    sales = db.query(Sale).filter(Sale.customer_id == customer.id).all()
+    if sales:
+        db.close()
+        return [
+            {
+                "sale_id": s.sale_id,
+                "total": s.total,
+                "total_tax_incl": s.total_tax_incl,
+                "date": s.date,
+                "products": json.loads(s.products) if s.products else []
+            } for s in sales
+        ]
+    # If not found in DB, fetch from Hiboutik
+    hiboutik_sales = await fetch_sales_from_hiboutik(client_id)
+    if hiboutik_sales:
+        add_or_update_sales(db, client_id, hiboutik_sales)
+        sales = db.query(Sale).filter(Sale.customer_id == customer.id).all()
+        db.close()
+        return [
+            {
+                "sale_id": s.sale_id,
+                "total": s.total,
+                "total_tax_incl": s.total_tax_incl,
+                "date": s.date,
+                "products": json.loads(s.products) if s.products else []
+            } for s in sales
+        ]
+    db.close()
+    return []
