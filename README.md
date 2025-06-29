@@ -252,7 +252,7 @@ Le projet suit les meilleures pratiques :
    Mettre à jour FastAPI pour servir les fichiers React construits
 
 3. **Variables d'environnement** :
-   Configurer les URL et secrets API de production
+   Configurer les URLs et secrets API de production
 
 ## Remarques
 
